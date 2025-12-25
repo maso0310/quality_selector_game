@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:data.mendeley.com)",
+      "WebFetch(domain:universe.roboflow.com)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(where:*)",
+      "Bash(C:Python310python.exe -m pip install kaggle)",
+      "Bash(\"/c/Python310/python.exe\" -m pip install kaggle)",
+      "Bash(py -3.10 -m pip install kaggle)",
+      "Bash(py -m pip:*)",
+      "Bash(py -m kaggle:*)",
+      "Bash(\"C:/Users/balim/AppData/Local/Python/pythoncore-3.14-64/Scripts/kaggle.exe\" datasets download -d sriramr/fruits-fresh-and-rotten-for-classification -p \"D:/Course/Smart_Agri_Course/02_CODE/10_Quality_Selector_Game/dataset\" --unzip)",
+      "Bash(py scripts/remove_background.py)",
+      "Bash(py -3.10 -m pip install:*)",
+      "Bash(py:*)",
+      "Bash(py -0)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(powershell -Command \"\\(Get-ChildItem -Path ''D:\\\\Course\\\\Smart_Agri_Course\\\\02_CODE\\\\10_Quality_Selector_Game\\\\images\\\\validation'' -Recurse | Measure-Object -Property Length -Sum\\).Sum / 1MB\")"
+    ]
+  }
+}

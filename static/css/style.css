@@ -174,8 +174,8 @@ body {
 }
 
 @keyframes belt-move {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-60px); }
+    0% { transform: translateX(-60px); }
+    100% { transform: translateX(0); }
 }
 
 /* 作物樣式 */
@@ -194,6 +194,20 @@ body {
     width: 100%;
     height: 100%;
     filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+}
+
+/* 真實圖片樣式 */
+.crop-item.real-image {
+    width: 100px;
+    height: 100px;
+}
+
+.crop-item.real-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+    pointer-events: none;
 }
 
 .crop-item.sorting-up {

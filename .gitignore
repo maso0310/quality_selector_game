@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Images (太大不適合 Git)
+images/healthy/
+images/diseased/
+images/processed/
+images/train/
+dataset/
+
+# 驗證集可以上傳 (約 120MB)
+# images/validation/ 不在此排除，會上傳到 GitHub
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

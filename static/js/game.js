@@ -23,6 +23,13 @@ class QualitySelectorGame {
         this.sortingZoneStart = 15;  // 分類區起始 (%)
         this.sortingZoneEnd = 25;    // 分類區結束 (%)
 
+        // 圖片資源
+        this.imageList = {
+            healthy: [],
+            diseased: [],
+            useRealImages: false
+        };
+
         // DOM 元素
         this.conveyor = document.getElementById('conveyor');
         this.scoreEl = document.getElementById('score');
@@ -44,7 +51,7 @@ class QualitySelectorGame {
         this.zoneHealthy = document.getElementById('zone-healthy');
         this.zoneDiseased = document.getElementById('zone-diseased');
 
-        // 蘋果產生器
+        // 蘋果產生器 (備用)
         this.appleGenerator = new AppleGenerator();
 
         // 計時器
@@ -55,9 +62,29 @@ class QualitySelectorGame {
         this.init();
     }
 
-    init() {
+    async init() {
+        await this.loadImageList();
         this.bindEvents();
         this.updateUI();
+    }
+
+    async loadImageList() {
+        try {
+            const response = await fetch('api/images/list');
+            if (response.ok) {
+                this.imageList = await response.json();
+                console.log(`[遊戲] 載入圖片成功: 健康 ${this.imageList.healthy.length} 張, 病害 ${this.imageList.diseased.length} 張`);
+
+                if (this.imageList.useRealImages) {
+                    console.log('[遊戲] 使用真實圖片模式');
+                } else {
+                    console.log('[遊戲] 使用模擬圖片模式');
+                }
+            }
+        } catch (error) {
+            console.log('[遊戲] 無法載入圖片列表，使用模擬圖片');
+            this.imageList.useRealImages = false;
+        }
     }
 
     bindEvents() {
@@ -168,26 +195,71 @@ class QualitySelectorGame {
         this.checkLevelUp();
     }
 
+    getRandomImage(type) {
+        const list = type === 'healthy' ? this.imageList.healthy : this.imageList.diseased;
+        if (list.length === 0) return null;
+        const randomIndex = Math.floor(Math.random() * list.length);
+        return list[randomIndex];
+    }
+
     spawnCrop() {
-        const apple = this.appleGenerator.generate();
-        const crop = {
-            id: this.cropIdCounter++,
-            type: apple.type,
-            label: apple.label,
-            svg: apple.svg,
-            position: -80, // 從左邊外面開始
-            sorted: false
-        };
+        let crop;
+        let cropEl;
+
+        // 隨機決定健康或病害
+        const type = Math.random() > 0.5 ? 'healthy' : 'diseased';
+        const label = type === 'healthy' ? '健康' : '病害';
+
+        // 檢查是否使用真實圖片
+        if (this.imageList.useRealImages) {
+            const imageName = this.getRandomImage(type);
+
+            if (imageName) {
+                crop = {
+                    id: this.cropIdCounter++,
+                    type: type,
+                    label: label,
+                    imageName: imageName,
+                    position: -100, // 從左邊外面開始
+                    sorted: false
+                };
+
+                // 建立 DOM 元素 (使用真實圖片)
+                cropEl = document.createElement('div');
+                cropEl.id = `crop-${crop.id}`;
+                cropEl.className = 'crop-item real-image';
+
+                const img = document.createElement('img');
+                img.src = `images/${type}/${imageName}`;
+                img.alt = label;
+                img.draggable = false;
+
+                cropEl.appendChild(img);
+            }
+        }
+
+        // 如果沒有真實圖片或載入失敗，使用 SVG 模擬
+        if (!crop) {
+            const apple = this.appleGenerator.generate(type);
+            crop = {
+                id: this.cropIdCounter++,
+                type: apple.type,
+                label: apple.label,
+                svg: apple.svg,
+                position: -80, // 從左邊外面開始
+                sorted: false
+            };
+
+            cropEl = document.createElement('div');
+            cropEl.id = `crop-${crop.id}`;
+            cropEl.className = 'crop-item';
+            cropEl.innerHTML = apple.svg;
+        }
 
         this.crops.push(crop);
 
-        // 建立 DOM 元素
-        const cropEl = document.createElement('div');
-        cropEl.id = `crop-${crop.id}`;
-        cropEl.className = 'crop-item';
-        cropEl.innerHTML = apple.svg;
         cropEl.style.left = `${crop.position}px`;
-        cropEl.title = apple.label; // Debug 用
+        cropEl.title = crop.label; // Debug 用
 
         this.conveyor.appendChild(cropEl);
     }
