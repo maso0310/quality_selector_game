@@ -30,6 +30,12 @@ class QualitySelectorGame {
             useRealImages: false
         };
 
+        // 預載圖片快取
+        this.preloadedImages = {
+            healthy: [],
+            diseased: []
+        };
+
         // DOM 元素
         this.conveyor = document.getElementById('conveyor');
         this.scoreEl = document.getElementById('score');
@@ -77,6 +83,8 @@ class QualitySelectorGame {
 
                 if (this.imageList.useRealImages) {
                     console.log('[遊戲] 使用真實圖片模式');
+                    // 預載部分圖片
+                    this.preloadImages();
                 } else {
                     console.log('[遊戲] 使用模擬圖片模式');
                 }
@@ -85,6 +93,57 @@ class QualitySelectorGame {
             console.log('[遊戲] 無法載入圖片列表，使用模擬圖片');
             this.imageList.useRealImages = false;
         }
+    }
+
+    preloadImages() {
+        // 預載前 30 張圖片 (每種類型各 15 張)
+        const preloadCount = 15;
+
+        ['healthy', 'diseased'].forEach(type => {
+            const list = this.imageList[type];
+            const toPreload = list.slice(0, Math.min(preloadCount, list.length));
+
+            toPreload.forEach(imageName => {
+                const img = new Image();
+                img.src = `images/validation/${type}/${imageName}`;
+                img.onload = () => {
+                    this.preloadedImages[type].push({
+                        name: imageName,
+                        img: img
+                    });
+                };
+            });
+        });
+
+        console.log('[遊戲] 開始預載圖片...');
+    }
+
+    getPreloadedImage(type) {
+        // 優先使用已預載的圖片
+        if (this.preloadedImages[type].length > 0) {
+            const cached = this.preloadedImages[type].shift();
+            // 補充預載一張新的
+            this.preloadOneImage(type);
+            return cached;
+        }
+        return null;
+    }
+
+    preloadOneImage(type) {
+        const list = this.imageList[type];
+        if (list.length === 0) return;
+
+        const randomIndex = Math.floor(Math.random() * list.length);
+        const imageName = list[randomIndex];
+
+        const img = new Image();
+        img.src = `images/validation/${type}/${imageName}`;
+        img.onload = () => {
+            this.preloadedImages[type].push({
+                name: imageName,
+                img: img
+            });
+        };
     }
 
     bindEvents() {
@@ -145,8 +204,9 @@ class QualitySelectorGame {
         for (const crop of this.crops) {
             if (crop.sorted) continue;
 
-            const cropRight = crop.position + 80; // 作物寬度
-            const cropCenter = crop.position + 40;
+            const cropWidth = 140; // 作物寬度
+            const cropRight = crop.position + cropWidth;
+            const cropCenter = crop.position + cropWidth / 2;
 
             // 檢查作物是否在分類區內
             if (cropCenter >= sortStart && cropCenter <= sortEnd) {
@@ -212,29 +272,56 @@ class QualitySelectorGame {
 
         // 檢查是否使用真實圖片
         if (this.imageList.useRealImages) {
-            const imageName = this.getRandomImage(type);
+            // 優先使用預載的圖片
+            const preloaded = this.getPreloadedImage(type);
 
-            if (imageName) {
+            if (preloaded) {
                 crop = {
                     id: this.cropIdCounter++,
                     type: type,
                     label: label,
-                    imageName: imageName,
-                    position: -100, // 從左邊外面開始
+                    imageName: preloaded.name,
+                    position: -150, // 從左邊外面開始
                     sorted: false
                 };
 
-                // 建立 DOM 元素 (使用真實圖片)
+                // 建立 DOM 元素 (使用預載的圖片)
                 cropEl = document.createElement('div');
                 cropEl.id = `crop-${crop.id}`;
                 cropEl.className = 'crop-item real-image';
 
-                const img = document.createElement('img');
-                img.src = `images/validation/${type}/${imageName}`;
+                const img = preloaded.img.cloneNode();
                 img.alt = label;
                 img.draggable = false;
+                img.className = 'loaded'; // 已載入完成
 
                 cropEl.appendChild(img);
+            } else {
+                // 沒有預載圖片時，使用一般載入方式
+                const imageName = this.getRandomImage(type);
+
+                if (imageName) {
+                    crop = {
+                        id: this.cropIdCounter++,
+                        type: type,
+                        label: label,
+                        imageName: imageName,
+                        position: -150, // 從左邊外面開始
+                        sorted: false
+                    };
+
+                    cropEl = document.createElement('div');
+                    cropEl.id = `crop-${crop.id}`;
+                    cropEl.className = 'crop-item real-image';
+
+                    const img = document.createElement('img');
+                    img.src = `images/validation/${type}/${imageName}`;
+                    img.alt = label;
+                    img.draggable = false;
+                    img.onload = () => img.classList.add('loaded');
+
+                    cropEl.appendChild(img);
+                }
             }
         }
 
@@ -246,7 +333,7 @@ class QualitySelectorGame {
                 type: apple.type,
                 label: apple.label,
                 svg: apple.svg,
-                position: -80, // 從左邊外面開始
+                position: -100, // 從左邊外面開始
                 sorted: false
             };
 
