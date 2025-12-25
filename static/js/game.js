@@ -204,7 +204,7 @@ class QualitySelectorGame {
         for (const crop of this.crops) {
             if (crop.sorted) continue;
 
-            const cropWidth = 140; // 作物寬度
+            const cropWidth = 180; // 作物寬度
             const cropRight = crop.position + cropWidth;
             const cropCenter = crop.position + cropWidth / 2;
 
@@ -281,7 +281,7 @@ class QualitySelectorGame {
                     type: type,
                     label: label,
                     imageName: preloaded.name,
-                    position: -150, // 從左邊外面開始
+                    position: -190, // 從左邊外面開始
                     sorted: false
                 };
 
@@ -306,7 +306,7 @@ class QualitySelectorGame {
                         type: type,
                         label: label,
                         imageName: imageName,
-                        position: -150, // 從左邊外面開始
+                        position: -190, // 從左邊外面開始
                         sorted: false
                     };
 
