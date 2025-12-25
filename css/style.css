@@ -1,0 +1,463 @@
+/* 基本樣式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: #fff;
+    padding: 20px;
+}
+
+/* 遊戲容器 */
+.game-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* 標題區 */
+.game-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.game-header h1 {
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #aaa;
+    font-size: 1.1rem;
+}
+
+/* 計分板 */
+.scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.score-item .label {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+.score-item .value {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.score-item .correct { color: #4CAF50; }
+.score-item .wrong { color: #f44336; }
+.score-item .missed { color: #ff9800; }
+.score-item .level { color: #2196F3; }
+
+/* 遊戲主區域 */
+.game-area {
+    position: relative;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* 分類區 */
+.sorting-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 10px 0;
+    transition: all 0.3s ease;
+}
+
+.zone-healthy {
+    background: linear-gradient(90deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.4));
+    border: 2px dashed #4CAF50;
+}
+
+.zone-diseased {
+    background: linear-gradient(90deg, rgba(244, 67, 54, 0.2), rgba(244, 67, 54, 0.4));
+    border: 2px dashed #f44336;
+}
+
+.sorting-zone.active {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.zone-healthy.active {
+    background: linear-gradient(90deg, rgba(76, 175, 80, 0.4), rgba(76, 175, 80, 0.6));
+}
+
+.zone-diseased.active {
+    background: linear-gradient(90deg, rgba(244, 67, 54, 0.4), rgba(244, 67, 54, 0.6));
+}
+
+.zone-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.zone-icon {
+    font-size: 1.5rem;
+}
+
+.zone-label kbd {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.zone-drop {
+    position: absolute;
+    right: 50px;
+    width: 80px;
+    height: 80px;
+}
+
+/* 輸送帶 */
+.conveyor-wrapper {
+    position: relative;
+    margin: 20px 0;
+}
+
+.conveyor-belt {
+    position: relative;
+    height: 120px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 3px solid #555;
+}
+
+.belt-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        90deg,
+        #3a3a3a 0px,
+        #3a3a3a 30px,
+        #444 30px,
+        #444 60px
+    );
+    animation: belt-move 2s linear infinite;
+}
+
+@keyframes belt-move {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-60px); }
+}
+
+/* 作物樣式 */
+.crop-item {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;
+    height: 80px;
+    z-index: 10;
+    transition: top 0.3s ease;
+    cursor: pointer;
+}
+
+.crop-item svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+}
+
+.crop-item.sorting-up {
+    animation: sort-up 0.5s ease forwards;
+}
+
+.crop-item.sorting-down {
+    animation: sort-down 0.5s ease forwards;
+}
+
+@keyframes sort-up {
+    0% { transform: translateY(-50%); }
+    100% { transform: translateY(-200px); opacity: 0; }
+}
+
+@keyframes sort-down {
+    0% { transform: translateY(-50%); }
+    100% { transform: translateY(200px); opacity: 0; }
+}
+
+.crop-item.correct {
+    animation: correct-flash 0.3s ease;
+}
+
+.crop-item.wrong {
+    animation: wrong-flash 0.3s ease;
+}
+
+@keyframes correct-flash {
+    0%, 100% { filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)); }
+    50% { filter: drop-shadow(0 0 20px #4CAF50); }
+}
+
+@keyframes wrong-flash {
+    0%, 100% { filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)); }
+    50% { filter: drop-shadow(0 0 20px #f44336); }
+}
+
+/* 分類點指示線 */
+.sorting-line {
+    position: absolute;
+    right: 150px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #ff9800, #ff5722);
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+    z-index: 5;
+}
+
+.sorting-label {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff9800;
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: #000;
+    font-weight: bold;
+}
+
+/* 控制面板 */
+.control-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-group label {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.control-group input[type="range"] {
+    width: 100px;
+    cursor: pointer;
+}
+
+.control-group span {
+    min-width: 25px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+    color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(45deg, #607D8B, #78909C);
+    color: #fff;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(96, 125, 139, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(45deg, #f44336, #e57373);
+    color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+}
+
+/* 遊戲說明 */
+.instructions {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #2196F3;
+}
+
+.instructions h3 {
+    margin-bottom: 15px;
+    color: #2196F3;
+}
+
+.instructions ul {
+    list-style: none;
+    padding-left: 10px;
+}
+
+.instructions li {
+    padding: 5px 0;
+    color: #ccc;
+}
+
+.instructions li::before {
+    content: "•";
+    color: #2196F3;
+    margin-right: 10px;
+}
+
+.instructions kbd {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.instructions strong {
+    color: #ff9800;
+}
+
+/* 遊戲結束畫面 */
+.game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.game-over-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.game-over-content {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    border: 2px solid #4CAF50;
+    box-shadow: 0 0 30px rgba(76, 175, 80, 0.3);
+}
+
+.game-over-content h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #4CAF50;
+}
+
+.final-stats {
+    margin: 20px 0;
+}
+
+.final-stats p {
+    font-size: 1.2rem;
+    margin: 10px 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .game-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .scoreboard {
+        gap: 15px;
+    }
+
+    .score-item .value {
+        font-size: 1.4rem;
+    }
+
+    .control-panel {
+        gap: 20px;
+    }
+
+    .conveyor-belt {
+        height: 100px;
+    }
+
+    .crop-item {
+        width: 60px;
+        height: 60px;
+    }
+
+    .sorting-line {
+        right: 100px;
+    }
+}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>農作物品質分類遊戲</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 標題區 -->
+        <header class="game-header">
+            <h1>農作物品質分類遊戲</h1>
+            <p class="subtitle">將作物分類到正確的品質等級！</p>
+        </header>
+
+        <!-- 計分板 -->
+        <div class="scoreboard">
+            <div class="score-item">
+                <span class="label">分數</span>
+                <span class="value" id="score">0</span>
+            </div>
+            <div class="score-item">
+                <span class="label">正確</span>
+                <span class="value correct" id="correct">0</span>
+            </div>
+            <div class="score-item">
+                <span class="label">錯誤</span>
+                <span class="value wrong" id="wrong">0</span>
+            </div>
+            <div class="score-item">
+                <span class="label">遺漏</span>
+                <span class="value missed" id="missed">0</span>
+            </div>
+            <div class="score-item">
+                <span class="label">關卡</span>
+                <span class="value level" id="level">1</span>
+            </div>
+        </div>
+
+        <!-- 遊戲主區域 -->
+        <div class="game-area">
+            <!-- 分類區 - 健康 (上方) -->
+            <div class="sorting-zone zone-healthy" id="zone-healthy">
+                <div class="zone-label">
+                    <span class="zone-icon">&#x2191;</span>
+                    <span>健康</span>
+                    <kbd>&#x2191;</kbd>
+                </div>
+                <div class="zone-drop"></div>
+            </div>
+
+            <!-- 輸送帶區域 -->
+            <div class="conveyor-wrapper">
+                <div class="conveyor-belt" id="conveyor">
+                    <div class="belt-pattern"></div>
+                    <!-- 作物會動態加入這裡 -->
+                </div>
+                <!-- 分類點指示線 -->
+                <div class="sorting-line" id="sorting-line">
+                    <span class="sorting-label">分類點</span>
+                </div>
+            </div>
+
+            <!-- 分類區 - 病害 (下方) -->
+            <div class="sorting-zone zone-diseased" id="zone-diseased">
+                <div class="zone-label">
+                    <span class="zone-icon">&#x2193;</span>
+                    <span>病害</span>
+                    <kbd>&#x2193;</kbd>
+                </div>
+                <div class="zone-drop"></div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="speed-slider">輸送帶速度</label>
+                <input type="range" id="speed-slider" min="1" max="10" value="3">
+                <span id="speed-value">3</span>
+            </div>
+            <div class="control-group">
+                <label for="spawn-rate">生成頻率</label>
+                <input type="range" id="spawn-rate" min="1" max="10" value="2">
+                <span id="spawn-value">2</span>
+            </div>
+            <div class="button-group">
+                <button id="start-btn" class="btn btn-primary">開始遊戲</button>
+                <button id="pause-btn" class="btn btn-secondary" disabled>暫停</button>
+                <button id="reset-btn" class="btn btn-danger">重置</button>
+            </div>
+        </div>
+
+        <!-- 遊戲說明 -->
+        <div class="instructions">
+            <h3>遊戲說明</h3>
+            <ul>
+                <li>觀察輸送帶上的作物</li>
+                <li>當作物到達<strong>分類點</strong>時，按下對應按鍵：</li>
+                <li><kbd>&#x2191;</kbd> 方向鍵上 - 推送到「健康」區</li>
+                <li><kbd>&#x2193;</kbd> 方向鍵下 - 推送到「病害」區</li>
+                <li>正確分類得分，錯誤或遺漏會扣分</li>
+                <li>隨著關卡提升，速度和數量會增加！</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="js/apple-generator.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

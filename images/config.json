@@ -1,0 +1,21 @@
+{
+  "cropName": "蘋果",
+  "categories": [
+    {
+      "id": "healthy",
+      "name": "健康",
+      "folder": "healthy",
+      "color": "#4CAF50",
+      "key": "ArrowUp"
+    },
+    {
+      "id": "diseased",
+      "name": "病害",
+      "folder": "diseased",
+      "color": "#f44336",
+      "key": "ArrowDown"
+    }
+  ],
+  "useSimulatedImages": true,
+  "simulatedImageCount": 20
+}
