@@ -26,33 +26,23 @@ def serve_images(filename):
     return send_from_directory(real_app.config['IMAGES_FOLDER'], filename)
 
 
-@real_app.route("/images/healthy/<path:filename>")
+@real_app.route("/images/validation/healthy/<path:filename>")
 def serve_healthy_images(filename):
-    """提供健康作物圖片（優先使用處理後的圖片）"""
-    processed_folder = os.path.join(real_app.config['IMAGES_FOLDER'], 'processed', 'healthy')
-    original_folder = os.path.join(real_app.config['IMAGES_FOLDER'], 'healthy')
-
-    # 優先使用處理後的圖片
-    if os.path.exists(os.path.join(processed_folder, filename)):
-        return send_from_directory(processed_folder, filename)
-    return send_from_directory(original_folder, filename)
+    """提供健康作物圖片（驗證集）"""
+    validation_folder = os.path.join(real_app.config['IMAGES_FOLDER'], 'validation', 'healthy')
+    return send_from_directory(validation_folder, filename)
 
 
-@real_app.route("/images/diseased/<path:filename>")
+@real_app.route("/images/validation/diseased/<path:filename>")
 def serve_diseased_images(filename):
-    """提供病害作物圖片（優先使用處理後的圖片）"""
-    processed_folder = os.path.join(real_app.config['IMAGES_FOLDER'], 'processed', 'diseased')
-    original_folder = os.path.join(real_app.config['IMAGES_FOLDER'], 'diseased')
-
-    # 優先使用處理後的圖片
-    if os.path.exists(os.path.join(processed_folder, filename)):
-        return send_from_directory(processed_folder, filename)
-    return send_from_directory(original_folder, filename)
+    """提供病害作物圖片（驗證集）"""
+    validation_folder = os.path.join(real_app.config['IMAGES_FOLDER'], 'validation', 'diseased')
+    return send_from_directory(validation_folder, filename)
 
 
 @real_app.route("/api/images/list")
 def list_images():
-    """列出所有可用的作物圖片（優先使用處理後的圖片）"""
+    """列出所有可用的作物圖片（使用驗證集圖片）"""
     from flask import jsonify
 
     images = {
@@ -61,24 +51,18 @@ def list_images():
         'useRealImages': True
     }
 
-    # 優先使用處理後的圖片資料夾
-    processed_healthy = os.path.join(real_app.config['IMAGES_FOLDER'], 'processed', 'healthy')
-    processed_diseased = os.path.join(real_app.config['IMAGES_FOLDER'], 'processed', 'diseased')
-
-    # 備用原始圖片資料夾
-    original_healthy = os.path.join(real_app.config['IMAGES_FOLDER'], 'healthy')
-    original_diseased = os.path.join(real_app.config['IMAGES_FOLDER'], 'diseased')
+    # 使用驗證集資料夾 (已去背的圖片)
+    validation_healthy = os.path.join(real_app.config['IMAGES_FOLDER'], 'validation', 'healthy')
+    validation_diseased = os.path.join(real_app.config['IMAGES_FOLDER'], 'validation', 'diseased')
 
     # 列出健康圖片
-    healthy_path = processed_healthy if os.path.exists(processed_healthy) else original_healthy
-    if os.path.exists(healthy_path):
-        images['healthy'] = [f for f in os.listdir(healthy_path)
+    if os.path.exists(validation_healthy):
+        images['healthy'] = [f for f in os.listdir(validation_healthy)
                             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
 
     # 列出病害圖片
-    diseased_path = processed_diseased if os.path.exists(processed_diseased) else original_diseased
-    if os.path.exists(diseased_path):
-        images['diseased'] = [f for f in os.listdir(diseased_path)
+    if os.path.exists(validation_diseased):
+        images['diseased'] = [f for f in os.listdir(validation_diseased)
                              if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
 
     # 如果沒有圖片，標記使用模擬圖片

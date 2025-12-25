@@ -230,7 +230,7 @@ class QualitySelectorGame {
                 cropEl.className = 'crop-item real-image';
 
                 const img = document.createElement('img');
-                img.src = `images/${type}/${imageName}`;
+                img.src = `images/validation/${type}/${imageName}`;
                 img.alt = label;
                 img.draggable = false;
 
