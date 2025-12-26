@@ -15,8 +15,8 @@ class QualitySelectorGame {
         this.level = 1;
 
         // 遊戲設定
-        this.speed = 3;          // 輸送帶速度 (1-10)
-        this.spawnRate = 2;      // 生成頻率 (1-10)
+        this.speed = 3;          // 輸送帶速度 (1-7)
+        this.spawnRate = 2;      // 生成頻率 (1-7)
         this.crops = [];         // 目前在輸送帶上的作物
         this.cropIdCounter = 0;
 
@@ -197,11 +197,22 @@ class QualitySelectorGame {
                 // 移除等待中的請求
                 this.pendingDetections.delete(cropId);
 
+                // 找到對應的作物
+                const crop = this.crops.find(c => c.id === cropId);
+                if (!crop || crop.sorted) break;
+
                 if (success && detections && detections.length > 0) {
-                    // 找到對應的作物並更新偵測結果
-                    const crop = this.crops.find(c => c.id === cropId);
-                    if (crop && !crop.sorted) {
-                        crop.aiDetection = detections[0];
+                    // 偵測成功，儲存結果
+                    crop.aiDetection = detections[0];
+                    crop.detectAttempts = 0;  // 重置嘗試次數
+                } else {
+                    // 偵測無結果，追蹤嘗試次數以便重試
+                    crop.detectAttempts = (crop.detectAttempts || 0) + 1;
+                    // 最多重試 5 次
+                    if (crop.detectAttempts >= 5) {
+                        // 標記為無法偵測，避免無限重試
+                        crop.aiDetection = null;
+                        crop.detectFailed = true;
                     }
                 }
                 break;
@@ -397,8 +408,8 @@ class QualitySelectorGame {
                         this.checkAIAutoSort(crop);
                     }
 
-                    // 如果還沒有偵測結果且沒有等待中的請求，發送偵測請求
-                    if (!crop.aiDetection && !this.pendingDetections.has(crop.id)) {
+                    // 如果還沒有偵測結果、沒有等待中的請求、且沒有失敗過，發送偵測請求
+                    if (!crop.aiDetection && !crop.detectFailed && !this.pendingDetections.has(crop.id)) {
                         this.requestDetection(crop, cropEl);
                     }
                 }
@@ -415,7 +426,29 @@ class QualitySelectorGame {
      */
     requestDetection(crop, cropEl) {
         const imgEl = cropEl.querySelector('img');
-        if (!imgEl || !imgEl.complete || !imgEl.naturalWidth) return;
+
+        // 圖片尚未載入完成，等待載入後再偵測
+        if (!imgEl || !imgEl.complete || !imgEl.naturalWidth) {
+            // 如果圖片存在但還在載入，監聽載入完成事件
+            if (imgEl && !imgEl.complete) {
+                imgEl.addEventListener('load', () => {
+                    // 載入完成後，如果還沒偵測過就發送請求
+                    if (!crop.aiDetection && !crop.detectFailed && !this.pendingDetections.has(crop.id)) {
+                        this.sendDetectionRequest(crop, imgEl);
+                    }
+                }, { once: true });
+            }
+            return;
+        }
+
+        this.sendDetectionRequest(crop, imgEl);
+    }
+
+    /**
+     * 實際發送偵測請求
+     */
+    sendDetectionRequest(crop, imgEl) {
+        if (!imgEl || !imgEl.naturalWidth || !this.aiWorker) return;
 
         // 標記為等待中
         this.pendingDetections.set(crop.id, true);
@@ -851,15 +884,15 @@ class QualitySelectorGame {
 
     levelUp() {
         // 自動提高難度
-        if (this.speed < 10) {
-            this.speed = Math.min(10, this.speed + 1);
+        if (this.speed < 7) {
+            this.speed = Math.min(7, this.speed + 1);
             this.speedSlider.value = this.speed;
             this.speedValue.textContent = this.speed;
             this.updateBeltSpeed();
         }
 
-        if (this.spawnRate < 10) {
-            this.spawnRate = Math.min(10, this.spawnRate + 1);
+        if (this.spawnRate < 7) {
+            this.spawnRate = Math.min(7, this.spawnRate + 1);
             this.spawnRateSlider.value = this.spawnRate;
             this.spawnValue.textContent = this.spawnRate;
             this.restartSpawnTimer();
