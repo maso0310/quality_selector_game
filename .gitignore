@@ -9,13 +9,14 @@ ENV/
 
 # ===== 大型檔案 (不適合 Git) =====
 
-# 圖片資料集
+# 圖片資料集 (訓練用，太大不上傳)
 images/healthy/
 images/diseased/
 images/processed/
 images/train/
-images/validation/
 dataset/
+
+# 保留 images/validation/ 供網站展示用 (~120MB)
 
 # 訓練用資料集
 datasets/

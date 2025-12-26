@@ -28,7 +28,8 @@
       "Bash(powershell -Command:*)",
       "Bash(findstr:*)",
       "Bash(xargs -I {} sh -c 'stat --format=\"\"%s\"\" \"\"{}\"\" 2>/dev/null || echo 0')",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git add:*)"
     ]
   }
 }
