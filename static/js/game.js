@@ -1,5 +1,6 @@
 /**
  * 農作物品質分類遊戲 - 主遊戲邏輯
+ * 支援 AI 自動偵測模式
  */
 
 class QualitySelectorGame {
@@ -36,6 +37,24 @@ class QualitySelectorGame {
             diseased: []
         };
 
+        // AI 模式相關
+        this.aiMode = false;           // AI 自動模式開關
+        this.aiDetector = null;        // AI 偵測器實例
+        this.detectionCanvas = null;   // 偵測框 Canvas
+        this.detectionCtx = null;      // Canvas 2D 上下文
+        this.aiModelLoaded = false;    // 模型是否已載入
+        this.aiDetectionLoop = null;   // AI 偵測循環
+        this.aiStats = {               // AI 統計
+            correct: 0,
+            wrong: 0,
+            total: 0
+        };
+        this.playerStats = {           // 玩家統計 (手動模式)
+            correct: 0,
+            wrong: 0,
+            total: 0
+        };
+
         // DOM 元素
         this.conveyor = document.getElementById('conveyor');
         this.scoreEl = document.getElementById('score');
@@ -52,6 +71,13 @@ class QualitySelectorGame {
         this.startBtn = document.getElementById('start-btn');
         this.pauseBtn = document.getElementById('pause-btn');
         this.resetBtn = document.getElementById('reset-btn');
+
+        // AI 控制元素
+        this.aiToggleBtn = document.getElementById('ai-toggle-btn');
+        this.aiStatusEl = document.getElementById('ai-status');
+        this.aiStatsPanel = document.getElementById('ai-stats-panel');
+        this.playerAccuracyEl = document.getElementById('player-accuracy');
+        this.aiAccuracyEl = document.getElementById('ai-accuracy');
 
         // 分類區
         this.zoneHealthy = document.getElementById('zone-healthy');
@@ -70,8 +96,86 @@ class QualitySelectorGame {
 
     async init() {
         await this.loadImageList();
+        this.initDetectionCanvas();
         this.bindEvents();
         this.updateUI();
+
+        // 初始化 AI 偵測器
+        this.initAIDetector();
+    }
+
+    /**
+     * 初始化偵測框 Canvas
+     */
+    initDetectionCanvas() {
+        this.detectionCanvas = document.getElementById('detection-overlay');
+        if (this.detectionCanvas) {
+            this.detectionCtx = this.detectionCanvas.getContext('2d');
+            this.resizeDetectionCanvas();
+
+            // 監聽視窗大小變化
+            window.addEventListener('resize', () => this.resizeDetectionCanvas());
+        }
+    }
+
+    /**
+     * 調整偵測 Canvas 大小
+     */
+    resizeDetectionCanvas() {
+        if (!this.detectionCanvas || !this.conveyor) return;
+
+        const rect = this.conveyor.getBoundingClientRect();
+        this.detectionCanvas.width = rect.width;
+        this.detectionCanvas.height = rect.height;
+    }
+
+    /**
+     * 初始化 AI 偵測器
+     */
+    async initAIDetector() {
+        if (!window.appleDetector) {
+            console.log('[AI] 偵測器尚未載入');
+            this.updateAIStatus('error', '偵測器未載入');
+            return;
+        }
+
+        this.aiDetector = window.appleDetector;
+        this.updateAIStatus('loading', '模型載入中...');
+
+        try {
+            const loaded = await this.aiDetector.load();
+            if (loaded) {
+                this.aiModelLoaded = true;
+                this.updateAIStatus('ready', 'AI 就緒');
+                if (this.aiToggleBtn) {
+                    this.aiToggleBtn.disabled = false;
+                }
+                console.log('[AI] 模型載入完成');
+            } else {
+                this.updateAIStatus('error', '模型載入失敗');
+            }
+        } catch (error) {
+            console.error('[AI] 載入錯誤:', error);
+            this.updateAIStatus('error', '載入錯誤');
+        }
+    }
+
+    /**
+     * 更新 AI 狀態顯示
+     */
+    updateAIStatus(status, text) {
+        if (!this.aiStatusEl) return;
+
+        this.aiStatusEl.textContent = text;
+        this.aiStatusEl.className = 'ai-status';
+
+        if (status === 'ready') {
+            this.aiStatusEl.classList.add('ready');
+        } else if (status === 'loading') {
+            this.aiStatusEl.classList.add('loading');
+        } else if (status === 'error') {
+            this.aiStatusEl.classList.add('error');
+        }
     }
 
     async loadImageList() {
@@ -167,12 +271,273 @@ class QualitySelectorGame {
         this.pauseBtn.addEventListener('click', () => this.togglePause());
         this.resetBtn.addEventListener('click', () => this.reset());
 
+        // AI 模式切換按鈕
+        if (this.aiToggleBtn) {
+            this.aiToggleBtn.addEventListener('click', () => this.toggleAIMode());
+        }
+
         // 鍵盤控制
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
     }
 
+    /**
+     * 切換 AI 自動模式
+     */
+    toggleAIMode() {
+        if (!this.aiModelLoaded) {
+            console.log('[AI] 模型尚未載入');
+            return;
+        }
+
+        this.aiMode = !this.aiMode;
+
+        if (this.aiMode) {
+            // 開啟 AI 模式
+            this.aiToggleBtn.classList.add('active');
+            this.aiToggleBtn.textContent = 'AI 模式開啟';
+            this.updateAIStatus('ready', 'AI 自動分類中');
+
+            // 顯示統計面板
+            if (this.aiStatsPanel) {
+                this.aiStatsPanel.style.display = 'block';
+            }
+
+            // 開始 AI 偵測循環
+            this.startAIDetection();
+
+            console.log('[AI] AI 自動模式開啟');
+        } else {
+            // 關閉 AI 模式
+            this.aiToggleBtn.classList.remove('active');
+            this.aiToggleBtn.textContent = 'AI 自動模式';
+            this.updateAIStatus('ready', 'AI 就緒');
+
+            // 停止 AI 偵測循環
+            this.stopAIDetection();
+
+            // 清除偵測框
+            this.clearDetectionCanvas();
+
+            console.log('[AI] AI 自動模式關閉');
+        }
+    }
+
+    /**
+     * 開始 AI 偵測循環
+     */
+    startAIDetection() {
+        if (this.aiDetectionLoop) return;
+
+        const detect = async () => {
+            if (!this.aiMode || !this.isRunning || this.isPaused) {
+                this.aiDetectionLoop = requestAnimationFrame(detect);
+                return;
+            }
+
+            // 清除 Canvas
+            this.clearDetectionCanvas();
+
+            // 對每個作物執行偵測
+            for (const crop of this.crops) {
+                if (crop.sorted) continue;
+
+                const cropEl = document.getElementById(`crop-${crop.id}`);
+                if (!cropEl) continue;
+
+                const imgEl = cropEl.querySelector('img');
+                if (!imgEl || !imgEl.complete) continue;
+
+                try {
+                    // 執行偵測
+                    const detections = await this.aiDetector.detect(imgEl);
+
+                    if (detections.length > 0) {
+                        // 儲存偵測結果到 crop 物件
+                        crop.aiDetection = detections[0];
+
+                        // 繪製偵測框
+                        this.drawCropDetection(crop, cropEl, detections[0]);
+
+                        // 檢查是否需要自動分類
+                        this.checkAIAutoSort(crop);
+                    }
+                } catch (error) {
+                    // 偵測失敗，忽略
+                }
+            }
+
+            this.aiDetectionLoop = requestAnimationFrame(detect);
+        };
+
+        this.aiDetectionLoop = requestAnimationFrame(detect);
+    }
+
+    /**
+     * 停止 AI 偵測循環
+     */
+    stopAIDetection() {
+        if (this.aiDetectionLoop) {
+            cancelAnimationFrame(this.aiDetectionLoop);
+            this.aiDetectionLoop = null;
+        }
+    }
+
+    /**
+     * 清除偵測 Canvas
+     */
+    clearDetectionCanvas() {
+        if (this.detectionCtx && this.detectionCanvas) {
+            this.detectionCtx.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
+        }
+    }
+
+    /**
+     * 繪製單個作物的偵測框
+     */
+    drawCropDetection(crop, cropEl, detection) {
+        if (!this.detectionCtx) return;
+
+        const conveyorRect = this.conveyor.getBoundingClientRect();
+        const cropRect = cropEl.getBoundingClientRect();
+
+        // 計算偵測框在 Canvas 上的位置
+        const offsetX = cropRect.left - conveyorRect.left;
+        const offsetY = cropRect.top - conveyorRect.top;
+
+        // 計算縮放比例
+        const scale = cropRect.width / cropEl.querySelector('img').naturalWidth;
+
+        // 繪製偵測框
+        const x = detection.x1 * scale + offsetX;
+        const y = detection.y1 * scale + offsetY;
+        const w = detection.width * scale;
+        const h = detection.height * scale;
+
+        const color = detection.className === 'healthy' ? '#4CAF50' : '#f44336';
+
+        // 繪製框框
+        this.detectionCtx.strokeStyle = color;
+        this.detectionCtx.lineWidth = 3;
+        this.detectionCtx.strokeRect(x, y, w, h);
+
+        // 繪製標籤背景
+        const label = `${detection.className === 'healthy' ? '健康' : '病害'} ${(detection.confidence * 100).toFixed(0)}%`;
+        this.detectionCtx.font = 'bold 14px Arial';
+        const textWidth = this.detectionCtx.measureText(label).width;
+        const textHeight = 18;
+
+        this.detectionCtx.fillStyle = color;
+        this.detectionCtx.fillRect(x, y - textHeight - 2, textWidth + 8, textHeight + 2);
+
+        // 繪製標籤文字
+        this.detectionCtx.fillStyle = '#fff';
+        this.detectionCtx.fillText(label, x + 4, y - 6);
+
+        // 繪製中心點
+        const cx = detection.centerX * scale + offsetX;
+        const cy = detection.centerY * scale + offsetY;
+
+        this.detectionCtx.beginPath();
+        this.detectionCtx.arc(cx, cy, 5, 0, 2 * Math.PI);
+        this.detectionCtx.fillStyle = color;
+        this.detectionCtx.fill();
+    }
+
+    /**
+     * 檢查是否需要 AI 自動分類
+     */
+    checkAIAutoSort(crop) {
+        if (!this.aiMode || crop.sorted || !crop.aiDetection) return;
+
+        const conveyorWidth = this.conveyor.offsetWidth;
+        const sortStart = conveyorWidth * (1 - this.sortingZoneEnd / 100);
+        const sortEnd = conveyorWidth * (1 - this.sortingZoneStart / 100);
+        const sortCenter = (sortStart + sortEnd) / 2;
+
+        // 計算作物中心點位置
+        const cropWidth = 180;
+        const cropCenter = crop.position + cropWidth / 2;
+
+        // 當作物中心點到達分類區中心時，自動分類
+        if (cropCenter >= sortCenter - 20 && cropCenter <= sortCenter + 20) {
+            // 根據 AI 偵測結果分類
+            const aiPrediction = crop.aiDetection.className;
+            this.aiAutoSort(crop, aiPrediction);
+        }
+    }
+
+    /**
+     * AI 自動分類
+     */
+    aiAutoSort(crop, predictedType) {
+        if (crop.sorted) return;
+
+        crop.sorted = true;
+
+        // 判斷對錯
+        const isCorrect = crop.type === predictedType;
+        const cropElement = document.getElementById(`crop-${crop.id}`);
+
+        // 更新 AI 統計
+        this.aiStats.total++;
+        if (isCorrect) {
+            this.aiStats.correct++;
+            this.correct++;
+            this.score += 10 * this.level;
+            if (cropElement) cropElement.classList.add('correct');
+        } else {
+            this.aiStats.wrong++;
+            this.wrong++;
+            this.score = Math.max(0, this.score - 5);
+            if (cropElement) cropElement.classList.add('wrong');
+        }
+
+        // 閃爍對應區域
+        this.flashZone(predictedType);
+
+        // 播放分類動畫
+        if (cropElement) {
+            setTimeout(() => {
+                if (predictedType === 'healthy') {
+                    cropElement.classList.add('sorting-up');
+                } else {
+                    cropElement.classList.add('sorting-down');
+                }
+            }, 100);
+        }
+
+        // 移除作物
+        setTimeout(() => {
+            this.removeCrop(crop.id);
+        }, 600);
+
+        this.updateUI();
+        this.updateAIStatsPanel();
+        this.checkLevelUp();
+    }
+
+    /**
+     * 更新 AI 統計面板
+     */
+    updateAIStatsPanel() {
+        if (!this.playerAccuracyEl || !this.aiAccuracyEl) return;
+
+        // 計算玩家正確率
+        const playerTotal = this.playerStats.correct + this.playerStats.wrong;
+        const playerAccuracy = playerTotal > 0 ? (this.playerStats.correct / playerTotal * 100).toFixed(0) : 0;
+        this.playerAccuracyEl.textContent = `${playerAccuracy}%`;
+
+        // 計算 AI 正確率
+        const aiTotal = this.aiStats.correct + this.aiStats.wrong;
+        const aiAccuracy = aiTotal > 0 ? (this.aiStats.correct / aiTotal * 100).toFixed(0) : 0;
+        this.aiAccuracyEl.textContent = `${aiAccuracy}%`;
+    }
+
     handleKeyPress(e) {
         if (!this.isRunning || this.isPaused) return;
+
+        // AI 模式下禁用鍵盤輸入
+        if (this.aiMode) return;
 
         if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -227,11 +592,15 @@ class QualitySelectorGame {
         const isCorrect = targetCrop.type === targetType;
         const cropElement = document.getElementById(`crop-${targetCrop.id}`);
 
+        // 更新玩家統計
+        this.playerStats.total++;
         if (isCorrect) {
+            this.playerStats.correct++;
             this.correct++;
             this.score += 10 * this.level;
             cropElement.classList.add('correct');
         } else {
+            this.playerStats.wrong++;
             this.wrong++;
             this.score = Math.max(0, this.score - 5);
             cropElement.classList.add('wrong');
@@ -252,6 +621,7 @@ class QualitySelectorGame {
         }, 600);
 
         this.updateUI();
+        this.updateAIStatsPanel();
         this.checkLevelUp();
     }
 
@@ -472,6 +842,7 @@ class QualitySelectorGame {
         this.pauseBtn.disabled = false;
 
         this.updateBeltSpeed();
+        this.resizeDetectionCanvas();
 
         // 開始遊戲循環
         this.gameLoop = setInterval(() => {
@@ -482,6 +853,11 @@ class QualitySelectorGame {
 
         // 開始生成作物
         this.restartSpawnTimer();
+
+        // 如果 AI 模式已開啟，開始偵測
+        if (this.aiMode && this.aiModelLoaded) {
+            this.startAIDetection();
+        }
     }
 
     restartSpawnTimer() {
@@ -523,6 +899,29 @@ class QualitySelectorGame {
             this.spawnTimer = null;
         }
 
+        // 停止 AI 偵測
+        this.stopAIDetection();
+        this.clearDetectionCanvas();
+
+        // 重置 AI 模式
+        this.aiMode = false;
+        if (this.aiToggleBtn) {
+            this.aiToggleBtn.classList.remove('active');
+            this.aiToggleBtn.textContent = 'AI 自動模式';
+        }
+        if (this.aiModelLoaded) {
+            this.updateAIStatus('ready', 'AI 就緒');
+        }
+
+        // 隱藏 AI 統計面板
+        if (this.aiStatsPanel) {
+            this.aiStatsPanel.style.display = 'none';
+        }
+
+        // 重置統計
+        this.aiStats = { correct: 0, wrong: 0, total: 0 };
+        this.playerStats = { correct: 0, wrong: 0, total: 0 };
+
         // 清除所有作物
         for (const crop of this.crops) {
             const el = document.getElementById(`crop-${crop.id}`);
@@ -558,6 +957,7 @@ class QualitySelectorGame {
         }
 
         this.updateUI();
+        this.updateAIStatsPanel();
     }
 
     updateUI() {

@@ -7,15 +7,28 @@ __pycache__/
 venv/
 ENV/
 
-# Images (太大不適合 Git)
+# ===== 大型檔案 (不適合 Git) =====
+
+# 圖片資料集
 images/healthy/
 images/diseased/
 images/processed/
 images/train/
+images/validation/
 dataset/
 
-# 驗證集可以上傳 (約 120MB)
-# images/validation/ 不在此排除，會上傳到 GitHub
+# 訓練用資料集
+datasets/
+
+# YOLO 訓練輸出 (包含訓練過程和權重)
+runs/
+
+# PyTorch 模型權重 (可從網路下載或重新訓練)
+*.pt
+
+# ===== 保留的模型 =====
+# ONNX 模型供前端使用 (從 best.pt 匯出)
+!static/models/*.onnx
 
 # IDE
 .vscode/
@@ -24,6 +37,7 @@ dataset/
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # Logs
 *.log

@@ -20,7 +20,15 @@
       "Bash(py -0)",
       "Bash(cat:*)",
       "Bash(ls:*)",
-      "Bash(powershell -Command \"\\(Get-ChildItem -Path ''D:\\\\Course\\\\Smart_Agri_Course\\\\02_CODE\\\\10_Quality_Selector_Game\\\\images\\\\validation'' -Recurse | Measure-Object -Property Length -Sum\\).Sum / 1MB\")"
+      "Bash(powershell -Command \"\\(Get-ChildItem -Path ''D:\\\\Course\\\\Smart_Agri_Course\\\\02_CODE\\\\10_Quality_Selector_Game\\\\images\\\\validation'' -Recurse | Measure-Object -Property Length -Sum\\).Sum / 1MB\")",
+      "Bash(dir:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill /PID 3112 /F)",
+      "Bash(powershell -Command \"Stop-Process -Id 3112 -Force\")",
+      "Bash(powershell -Command:*)",
+      "Bash(findstr:*)",
+      "Bash(xargs -I {} sh -c 'stat --format=\"\"%s\"\" \"\"{}\"\" 2>/dev/null || echo 0')",
+      "Bash(git rm:*)"
     ]
   }
 }

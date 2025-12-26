@@ -56,6 +56,8 @@
                     <div class="belt-pattern"></div>
                     <!-- 作物會動態加入這裡 -->
                 </div>
+                <!-- AI 偵測框疊加層 -->
+                <canvas id="detection-overlay"></canvas>
                 <!-- 分類點指示線 -->
                 <div class="sorting-line" id="sorting-line">
                     <span class="sorting-label">分類點</span>
@@ -90,6 +92,25 @@
                 <button id="pause-btn" class="btn btn-secondary" disabled>暫停</button>
                 <button id="reset-btn" class="btn btn-danger">重置</button>
             </div>
+            <div class="ai-controls">
+                <button id="ai-toggle-btn" class="btn btn-ai" disabled>AI 自動模式</button>
+                <span id="ai-status" class="ai-status">模型載入中...</span>
+            </div>
+        </div>
+
+        <!-- AI 對比統計面板 -->
+        <div class="ai-stats-panel" id="ai-stats-panel" style="display: none;">
+            <h3>玩家 vs AI 對比</h3>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">玩家正確率</span>
+                    <span class="stat-value" id="player-accuracy">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">AI 正確率</span>
+                    <span class="stat-value" id="ai-accuracy">0%</span>
+                </div>
+            </div>
         </div>
 
         <!-- 遊戲說明 -->
@@ -102,11 +123,15 @@
                 <li><kbd>&#x2193;</kbd> 方向鍵下 - 推送到「病害」區</li>
                 <li>正確分類得分，錯誤或遺漏會扣分</li>
                 <li>隨著關卡提升，速度和數量會增加！</li>
+                <li>點擊「AI 自動模式」觀看 AI 自動分類</li>
             </ul>
         </div>
     </div>
 
+    <!-- ONNX Runtime Web -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <script src="{{ url_for('static', filename='js/apple-generator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai-detector.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 </body>
 </html>

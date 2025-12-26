@@ -450,6 +450,106 @@ body {
     margin: 10px 0;
 }
 
+/* AI 偵測框疊加層 */
+#detection-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15;
+}
+
+/* AI 控制區 */
+.ai-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-ai {
+    background: linear-gradient(45deg, #9C27B0, #E91E63);
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ai:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
+}
+
+.btn-ai.active {
+    background: linear-gradient(45deg, #E91E63, #FF5722);
+    animation: ai-pulse 2s ease infinite;
+}
+
+@keyframes ai-pulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(233, 30, 99, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(233, 30, 99, 0.8); }
+}
+
+.ai-status {
+    font-size: 0.85rem;
+    color: #aaa;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.ai-status.ready {
+    color: #4CAF50;
+}
+
+.ai-status.loading {
+    color: #ff9800;
+}
+
+.ai-status.error {
+    color: #f44336;
+}
+
+/* AI 統計面板 */
+.ai-stats-panel {
+    background: rgba(156, 39, 176, 0.1);
+    border: 2px solid #9C27B0;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+}
+
+.ai-stats-panel h3 {
+    margin: 0 0 15px 0;
+    color: #E91E63;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
     .game-header h1 {
