@@ -147,17 +147,28 @@ class QualitySelectorGame {
                 this.updateAIStatus('error', 'Worker 錯誤');
             };
 
-            // 載入模型
+            console.log('[AI] Worker 已建立，開始載入模型...');
+
+            // 在主線程載入模型檔案，再傳給 Worker
+            const modelPath = 'static/models/apple_detector.onnx';
+            const response = await fetch(modelPath);
+            if (!response.ok) {
+                throw new Error(`無法載入模型: ${response.status}`);
+            }
+            const modelBuffer = await response.arrayBuffer();
+
+            console.log('[AI] 模型檔案已載入，傳送給 Worker...');
+
+            // 傳送模型給 Worker
             this.aiWorker.postMessage({
                 type: 'load',
                 id: 'init',
-                data: { modelPath: 'static/models/apple_detector.onnx' }
-            });
+                data: { modelBuffer }
+            }, [modelBuffer]);  // 使用 Transferable 提高效率
 
-            console.log('[AI] Worker 已建立，等待模型載入...');
         } catch (error) {
             console.error('[AI] 初始化錯誤:', error);
-            this.updateAIStatus('error', '初始化錯誤');
+            this.updateAIStatus('error', '模型載入失敗');
         }
     }
 

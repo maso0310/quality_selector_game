@@ -14,9 +14,9 @@ const confThreshold = 0.5;
 const iouThreshold = 0.45;
 
 /**
- * 載入模型
+ * 載入模型 (從 ArrayBuffer)
  */
-async function loadModel(modelPath) {
+async function loadModel(modelBuffer) {
     if (isLoaded) return { success: true };
 
     try {
@@ -24,7 +24,9 @@ async function loadModel(modelPath) {
 
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
 
-        session = await ort.InferenceSession.create(modelPath, {
+        // 從 ArrayBuffer 建立模型
+        const modelData = new Uint8Array(modelBuffer);
+        session = await ort.InferenceSession.create(modelData, {
             executionProviders: ['wasm'],
             graphOptimizationLevel: 'all'
         });
@@ -208,7 +210,7 @@ self.onmessage = async function(e) {
 
     switch (type) {
         case 'load':
-            const loadResult = await loadModel(data.modelPath);
+            const loadResult = await loadModel(data.modelBuffer);
             self.postMessage({ type: 'loaded', id, ...loadResult });
             break;
 
