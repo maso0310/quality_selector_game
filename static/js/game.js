@@ -43,7 +43,9 @@ class QualitySelectorGame {
         this.detectionCanvas = null;   // 偵測框 Canvas
         this.detectionCtx = null;      // Canvas 2D 上下文
         this.aiModelLoaded = false;    // 模型是否已載入
-        this.aiDetectionLoop = null;   // AI 偵測循環
+        this.aiDetectionLoop = null;   // AI 偵測框繪製循環
+        this.aiDetectionTimer = null;  // AI 偵測計時器（獨立於動畫）
+        this.isDetecting = false;      // 是否正在偵測中
         this.aiStats = {               // AI 統計
             correct: 0,
             wrong: 0,
@@ -328,16 +330,50 @@ class QualitySelectorGame {
     startAIDetection() {
         if (this.aiDetectionLoop) return;
 
-        const detect = async () => {
-            if (!this.aiMode || !this.isRunning || this.isPaused) {
-                this.aiDetectionLoop = requestAnimationFrame(detect);
-                return;
+        // 1. 獨立的 AI 偵測計時器（不阻塞動畫）
+        this.startAIDetectionTimer();
+
+        // 2. 動畫循環只負責繪製偵測框和檢查自動分類
+        const drawLoop = () => {
+            if (!this.aiMode) return;
+
+            if (this.isRunning && !this.isPaused) {
+                // 清除 Canvas
+                this.clearDetectionCanvas();
+
+                // 繪製所有已偵測到的框框，並檢查自動分類
+                for (const crop of this.crops) {
+                    if (crop.sorted) continue;
+
+                    if (crop.aiDetection) {
+                        const cropEl = document.getElementById(`crop-${crop.id}`);
+                        if (cropEl) {
+                            this.drawCropDetection(crop, cropEl, crop.aiDetection);
+                        }
+                        // 檢查是否需要自動分類
+                        this.checkAIAutoSort(crop);
+                    }
+                }
             }
 
-            // 清除 Canvas
-            this.clearDetectionCanvas();
+            this.aiDetectionLoop = requestAnimationFrame(drawLoop);
+        };
 
-            // 對每個作物執行偵測
+        this.aiDetectionLoop = requestAnimationFrame(drawLoop);
+    }
+
+    /**
+     * 啟動 AI 偵測計時器（獨立於動畫循環）
+     */
+    startAIDetectionTimer() {
+        if (this.aiDetectionTimer) return;
+
+        const detectAll = async () => {
+            if (!this.aiMode || !this.isRunning || this.isPaused || this.isDetecting) return;
+
+            this.isDetecting = true;
+
+            // 對每個未分類的作物執行偵測
             for (const crop of this.crops) {
                 if (crop.sorted) continue;
 
@@ -348,28 +384,20 @@ class QualitySelectorGame {
                 if (!imgEl || !imgEl.complete) continue;
 
                 try {
-                    // 執行偵測
                     const detections = await this.aiDetector.detect(imgEl);
-
                     if (detections.length > 0) {
-                        // 儲存偵測結果到 crop 物件
                         crop.aiDetection = detections[0];
-
-                        // 繪製偵測框
-                        this.drawCropDetection(crop, cropEl, detections[0]);
-
-                        // 檢查是否需要自動分類
-                        this.checkAIAutoSort(crop);
                     }
                 } catch (error) {
                     // 偵測失敗，忽略
                 }
             }
 
-            this.aiDetectionLoop = requestAnimationFrame(detect);
+            this.isDetecting = false;
         };
 
-        this.aiDetectionLoop = requestAnimationFrame(detect);
+        // 每 150ms 執行一次偵測（不影響 60fps 動畫）
+        this.aiDetectionTimer = setInterval(detectAll, 150);
     }
 
     /**
@@ -380,6 +408,11 @@ class QualitySelectorGame {
             cancelAnimationFrame(this.aiDetectionLoop);
             this.aiDetectionLoop = null;
         }
+        if (this.aiDetectionTimer) {
+            clearInterval(this.aiDetectionTimer);
+            this.aiDetectionTimer = null;
+        }
+        this.isDetecting = false;
     }
 
     /**
