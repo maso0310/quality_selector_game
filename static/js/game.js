@@ -39,13 +39,12 @@ class QualitySelectorGame {
 
         // AI 模式相關
         this.aiMode = false;           // AI 自動模式開關
-        this.aiDetector = null;        // AI 偵測器實例
+        this.aiWorker = null;          // AI Web Worker
         this.detectionCanvas = null;   // 偵測框 Canvas
         this.detectionCtx = null;      // Canvas 2D 上下文
         this.aiModelLoaded = false;    // 模型是否已載入
         this.aiDetectionLoop = null;   // AI 偵測框繪製循環
-        this.aiDetectionTimer = null;  // AI 偵測計時器（獨立於動畫）
-        this.isDetecting = false;      // 是否正在偵測中
+        this.pendingDetections = new Map();  // 等待中的偵測請求
         this.aiStats = {               // AI 統計
             correct: 0,
             wrong: 0,
@@ -132,33 +131,69 @@ class QualitySelectorGame {
     }
 
     /**
-     * 初始化 AI 偵測器
+     * 初始化 AI 偵測器 (使用 Web Worker)
      */
     async initAIDetector() {
-        if (!window.appleDetector) {
-            console.log('[AI] 偵測器尚未載入');
-            this.updateAIStatus('error', '偵測器未載入');
-            return;
-        }
-
-        this.aiDetector = window.appleDetector;
         this.updateAIStatus('loading', '模型載入中...');
 
         try {
-            const loaded = await this.aiDetector.load();
-            if (loaded) {
-                this.aiModelLoaded = true;
-                this.updateAIStatus('ready', 'AI 就緒');
-                if (this.aiToggleBtn) {
-                    this.aiToggleBtn.disabled = false;
-                }
-                console.log('[AI] 模型載入完成');
-            } else {
-                this.updateAIStatus('error', '模型載入失敗');
-            }
+            // 建立 Web Worker
+            this.aiWorker = new Worker('static/js/ai-worker.js');
+
+            // 監聽 Worker 訊息
+            this.aiWorker.onmessage = (e) => this.handleWorkerMessage(e);
+            this.aiWorker.onerror = (e) => {
+                console.error('[AI] Worker 錯誤:', e);
+                this.updateAIStatus('error', 'Worker 錯誤');
+            };
+
+            // 載入模型
+            this.aiWorker.postMessage({
+                type: 'load',
+                id: 'init',
+                data: { modelPath: 'static/models/apple_detector.onnx' }
+            });
+
+            console.log('[AI] Worker 已建立，等待模型載入...');
         } catch (error) {
-            console.error('[AI] 載入錯誤:', error);
-            this.updateAIStatus('error', '載入錯誤');
+            console.error('[AI] 初始化錯誤:', error);
+            this.updateAIStatus('error', '初始化錯誤');
+        }
+    }
+
+    /**
+     * 處理 Worker 訊息
+     */
+    handleWorkerMessage(e) {
+        const { type, id, cropId, success, detections, error } = e.data;
+
+        switch (type) {
+            case 'loaded':
+                if (success) {
+                    this.aiModelLoaded = true;
+                    this.updateAIStatus('ready', 'AI 就緒');
+                    if (this.aiToggleBtn) {
+                        this.aiToggleBtn.disabled = false;
+                    }
+                    console.log('[AI] 模型載入完成 (Worker)');
+                } else {
+                    console.error('[AI] 模型載入失敗:', error);
+                    this.updateAIStatus('error', '模型載入失敗');
+                }
+                break;
+
+            case 'detected':
+                // 移除等待中的請求
+                this.pendingDetections.delete(cropId);
+
+                if (success && detections && detections.length > 0) {
+                    // 找到對應的作物並更新偵測結果
+                    const crop = this.crops.find(c => c.id === cropId);
+                    if (crop && !crop.sorted) {
+                        crop.aiDetection = detections[0];
+                    }
+                }
+                break;
         }
     }
 
@@ -330,74 +365,74 @@ class QualitySelectorGame {
     startAIDetection() {
         if (this.aiDetectionLoop) return;
 
-        // 1. 獨立的 AI 偵測計時器（不阻塞動畫）
-        this.startAIDetectionTimer();
-
-        // 2. 動畫循環只負責繪製偵測框和檢查自動分類
-        const drawLoop = () => {
+        // 動畫循環：繪製偵測框 + 檢查自動分類 + 發送偵測請求
+        const loop = () => {
             if (!this.aiMode) return;
 
             if (this.isRunning && !this.isPaused) {
                 // 清除 Canvas
                 this.clearDetectionCanvas();
 
-                // 繪製所有已偵測到的框框，並檢查自動分類
+                // 處理每個作物
                 for (const crop of this.crops) {
                     if (crop.sorted) continue;
 
+                    const cropEl = document.getElementById(`crop-${crop.id}`);
+                    if (!cropEl) continue;
+
+                    // 如果有偵測結果，繪製框框並檢查自動分類
                     if (crop.aiDetection) {
-                        const cropEl = document.getElementById(`crop-${crop.id}`);
-                        if (cropEl) {
-                            this.drawCropDetection(crop, cropEl, crop.aiDetection);
-                        }
-                        // 檢查是否需要自動分類
+                        this.drawCropDetection(crop, cropEl, crop.aiDetection);
                         this.checkAIAutoSort(crop);
+                    }
+
+                    // 如果還沒有偵測結果且沒有等待中的請求，發送偵測請求
+                    if (!crop.aiDetection && !this.pendingDetections.has(crop.id)) {
+                        this.requestDetection(crop, cropEl);
                     }
                 }
             }
 
-            this.aiDetectionLoop = requestAnimationFrame(drawLoop);
+            this.aiDetectionLoop = requestAnimationFrame(loop);
         };
 
-        this.aiDetectionLoop = requestAnimationFrame(drawLoop);
+        this.aiDetectionLoop = requestAnimationFrame(loop);
     }
 
     /**
-     * 啟動 AI 偵測計時器（獨立於動畫循環）
+     * 發送偵測請求到 Worker
      */
-    startAIDetectionTimer() {
-        if (this.aiDetectionTimer) return;
+    requestDetection(crop, cropEl) {
+        const imgEl = cropEl.querySelector('img');
+        if (!imgEl || !imgEl.complete || !imgEl.naturalWidth) return;
 
-        const detectAll = async () => {
-            if (!this.aiMode || !this.isRunning || this.isPaused || this.isDetecting) return;
+        // 標記為等待中
+        this.pendingDetections.set(crop.id, true);
 
-            this.isDetecting = true;
+        // 將圖片轉換為 ImageData 並發送到 Worker
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = imgEl.naturalWidth;
+            canvas.height = imgEl.naturalHeight;
+            ctx.drawImage(imgEl, 0, 0);
 
-            // 對每個未分類的作物執行偵測
-            for (const crop of this.crops) {
-                if (crop.sorted) continue;
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-                const cropEl = document.getElementById(`crop-${crop.id}`);
-                if (!cropEl) continue;
-
-                const imgEl = cropEl.querySelector('img');
-                if (!imgEl || !imgEl.complete) continue;
-
-                try {
-                    const detections = await this.aiDetector.detect(imgEl);
-                    if (detections.length > 0) {
-                        crop.aiDetection = detections[0];
-                    }
-                } catch (error) {
-                    // 偵測失敗，忽略
+            this.aiWorker.postMessage({
+                type: 'detect',
+                id: crop.id,
+                data: {
+                    cropId: crop.id,
+                    imageData: imageData.data,
+                    width: canvas.width,
+                    height: canvas.height
                 }
-            }
-
-            this.isDetecting = false;
-        };
-
-        // 每 150ms 執行一次偵測（不影響 60fps 動畫）
-        this.aiDetectionTimer = setInterval(detectAll, 150);
+            });
+        } catch (error) {
+            // 跨域圖片可能會失敗，移除等待標記
+            this.pendingDetections.delete(crop.id);
+        }
     }
 
     /**
@@ -408,11 +443,7 @@ class QualitySelectorGame {
             cancelAnimationFrame(this.aiDetectionLoop);
             this.aiDetectionLoop = null;
         }
-        if (this.aiDetectionTimer) {
-            clearInterval(this.aiDetectionTimer);
-            this.aiDetectionTimer = null;
-        }
-        this.isDetecting = false;
+        this.pendingDetections.clear();
     }
 
     /**
