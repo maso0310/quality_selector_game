@@ -15,8 +15,8 @@ class QualitySelectorGame {
         this.level = 1;
 
         // 遊戲設定
-        this.speed = 3;          // 輸送帶速度 (1-7)
-        this.spawnRate = 2;      // 生成頻率 (1-7)
+        this.speed = 3;          // 輸送帶速度 (1-6)
+        this.spawnRate = 2;      // 生成頻率 (1-6)
         this.crops = [];         // 目前在輸送帶上的作物
         this.cropIdCounter = 0;
 
@@ -56,6 +56,13 @@ class QualitySelectorGame {
             total: 0
         };
 
+        // 判定記錄 (用於檢視詳細資訊)
+        this.resultRecords = {
+            correct: [],   // 正確分類的蘋果
+            wrong: [],     // 錯誤分類的蘋果
+            missed: []     // 遺漏的蘋果
+        };
+
         // DOM 元素
         this.conveyor = document.getElementById('conveyor');
         this.scoreEl = document.getElementById('score');
@@ -77,7 +84,6 @@ class QualitySelectorGame {
         this.aiToggleBtn = document.getElementById('ai-toggle-btn');
         this.aiStatusEl = document.getElementById('ai-status');
         this.aiStatsPanel = document.getElementById('ai-stats-panel');
-        this.playerAccuracyEl = document.getElementById('player-accuracy');
         this.aiAccuracyEl = document.getElementById('ai-accuracy');
 
         // 分類區
@@ -337,6 +343,20 @@ class QualitySelectorGame {
 
         // 鍵盤控制
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+
+        // 計分板點擊事件 (查看判定記錄)
+        if (this.correctEl) {
+            this.correctEl.parentElement.addEventListener('click', () => this.showRecordsModal('correct'));
+            this.correctEl.parentElement.classList.add('clickable');
+        }
+        if (this.wrongEl) {
+            this.wrongEl.parentElement.addEventListener('click', () => this.showRecordsModal('wrong'));
+            this.wrongEl.parentElement.classList.add('clickable');
+        }
+        if (this.missedEl) {
+            this.missedEl.parentElement.addEventListener('click', () => this.showRecordsModal('missed'));
+            this.missedEl.parentElement.classList.add('clickable');
+        }
     }
 
     /**
@@ -586,6 +606,17 @@ class QualitySelectorGame {
         const isCorrect = crop.type === predictedType;
         const cropElement = document.getElementById(`crop-${crop.id}`);
 
+        // 記錄結果
+        const record = {
+            id: crop.id,
+            actualType: crop.type,
+            predictedType: predictedType,
+            imageName: crop.imageName || null,
+            confidence: crop.aiDetection ? crop.aiDetection.confidence : null,
+            mode: 'AI',
+            timestamp: new Date().toLocaleTimeString()
+        };
+
         // 更新 AI 統計
         this.aiStats.total++;
         if (isCorrect) {
@@ -593,11 +624,13 @@ class QualitySelectorGame {
             this.correct++;
             this.score += 10 * this.level;
             if (cropElement) cropElement.classList.add('correct');
+            this.resultRecords.correct.push(record);
         } else {
             this.aiStats.wrong++;
             this.wrong++;
             this.score = Math.max(0, this.score - 5);
             if (cropElement) cropElement.classList.add('wrong');
+            this.resultRecords.wrong.push(record);
         }
 
         // 閃爍對應區域
@@ -628,12 +661,7 @@ class QualitySelectorGame {
      * 更新 AI 統計面板
      */
     updateAIStatsPanel() {
-        if (!this.playerAccuracyEl || !this.aiAccuracyEl) return;
-
-        // 計算玩家正確率
-        const playerTotal = this.playerStats.correct + this.playerStats.wrong;
-        const playerAccuracy = playerTotal > 0 ? (this.playerStats.correct / playerTotal * 100).toFixed(0) : 0;
-        this.playerAccuracyEl.textContent = `${playerAccuracy}%`;
+        if (!this.aiAccuracyEl) return;
 
         // 計算 AI 正確率
         const aiTotal = this.aiStats.correct + this.aiStats.wrong;
@@ -700,6 +728,17 @@ class QualitySelectorGame {
         const isCorrect = targetCrop.type === targetType;
         const cropElement = document.getElementById(`crop-${targetCrop.id}`);
 
+        // 記錄結果
+        const record = {
+            id: targetCrop.id,
+            actualType: targetCrop.type,
+            predictedType: targetType,
+            imageName: targetCrop.imageName || null,
+            confidence: null,
+            mode: '手動',
+            timestamp: new Date().toLocaleTimeString()
+        };
+
         // 更新玩家統計
         this.playerStats.total++;
         if (isCorrect) {
@@ -707,11 +746,13 @@ class QualitySelectorGame {
             this.correct++;
             this.score += 10 * this.level;
             cropElement.classList.add('correct');
+            this.resultRecords.correct.push(record);
         } else {
             this.playerStats.wrong++;
             this.wrong++;
             this.score = Math.max(0, this.score - 5);
             cropElement.classList.add('wrong');
+            this.resultRecords.wrong.push(record);
         }
 
         // 播放分類動畫
@@ -856,6 +897,17 @@ class QualitySelectorGame {
 
             // 檢查是否超出輸送帶 (遺漏)
             if (crop.position > conveyorWidth) {
+                // 記錄遺漏
+                this.resultRecords.missed.push({
+                    id: crop.id,
+                    actualType: crop.type,
+                    predictedType: null,
+                    imageName: crop.imageName || null,
+                    confidence: null,
+                    mode: this.aiMode ? 'AI' : '手動',
+                    timestamp: new Date().toLocaleTimeString()
+                });
+
                 this.missed++;
                 this.score = Math.max(0, this.score - 3);
                 crop.sorted = true;
@@ -884,15 +936,15 @@ class QualitySelectorGame {
 
     levelUp() {
         // 自動提高難度
-        if (this.speed < 7) {
-            this.speed = Math.min(7, this.speed + 1);
+        if (this.speed < 6) {
+            this.speed = Math.min(6, this.speed + 1);
             this.speedSlider.value = this.speed;
             this.speedValue.textContent = this.speed;
             this.updateBeltSpeed();
         }
 
-        if (this.spawnRate < 7) {
-            this.spawnRate = Math.min(7, this.spawnRate + 1);
+        if (this.spawnRate < 6) {
+            this.spawnRate = Math.min(6, this.spawnRate + 1);
             this.spawnRateSlider.value = this.spawnRate;
             this.spawnValue.textContent = this.spawnRate;
             this.restartSpawnTimer();
@@ -1029,6 +1081,7 @@ class QualitySelectorGame {
         // 重置統計
         this.aiStats = { correct: 0, wrong: 0, total: 0 };
         this.playerStats = { correct: 0, wrong: 0, total: 0 };
+        this.resultRecords = { correct: [], wrong: [], missed: [] };
 
         // 清除所有作物
         for (const crop of this.crops) {
@@ -1074,6 +1127,103 @@ class QualitySelectorGame {
         this.wrongEl.textContent = this.wrong;
         this.missedEl.textContent = this.missed;
         this.levelEl.textContent = this.level;
+    }
+
+    /**
+     * 顯示判定記錄彈出視窗
+     */
+    showRecordsModal(type) {
+        const records = this.resultRecords[type];
+        const titles = {
+            correct: '正確分類的蘋果',
+            wrong: '錯誤分類的蘋果',
+            missed: '遺漏的蘋果'
+        };
+
+        // 建立或取得 modal
+        let modal = document.getElementById('records-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'records-modal';
+            modal.className = 'records-modal';
+            modal.innerHTML = `
+                <div class="records-modal-content">
+                    <div class="records-modal-header">
+                        <h3 id="records-modal-title"></h3>
+                        <button class="records-modal-close">&times;</button>
+                    </div>
+                    <div class="records-modal-body" id="records-modal-body"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // 關閉按鈕事件
+            modal.querySelector('.records-modal-close').addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+
+            // 點擊背景關閉
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        }
+
+        // 更新標題
+        document.getElementById('records-modal-title').textContent =
+            `${titles[type]} (${records.length} 個)`;
+
+        // 更新內容
+        const body = document.getElementById('records-modal-body');
+
+        if (records.length === 0) {
+            body.innerHTML = '<p class="no-records">目前沒有記錄</p>';
+        } else {
+            body.innerHTML = `
+                <div class="records-list">
+                    ${records.map((record, index) => `
+                        <div class="record-item ${type}">
+                            <div class="record-image">
+                                ${record.imageName
+                                    ? `<img src="images/validation/${record.actualType}/${record.imageName}" alt="蘋果">`
+                                    : '<div class="no-image">SVG</div>'
+                                }
+                            </div>
+                            <div class="record-info">
+                                <div class="record-row">
+                                    <span class="record-label">實際類型:</span>
+                                    <span class="record-value ${record.actualType}">${record.actualType === 'healthy' ? '健康' : '病害'}</span>
+                                </div>
+                                ${record.predictedType ? `
+                                <div class="record-row">
+                                    <span class="record-label">判定類型:</span>
+                                    <span class="record-value ${record.predictedType}">${record.predictedType === 'healthy' ? '健康' : '病害'}</span>
+                                </div>
+                                ` : ''}
+                                ${record.confidence ? `
+                                <div class="record-row">
+                                    <span class="record-label">信心度:</span>
+                                    <span class="record-value">${(record.confidence * 100).toFixed(1)}%</span>
+                                </div>
+                                ` : ''}
+                                <div class="record-row">
+                                    <span class="record-label">模式:</span>
+                                    <span class="record-value">${record.mode}</span>
+                                </div>
+                                <div class="record-row">
+                                    <span class="record-label">時間:</span>
+                                    <span class="record-value">${record.timestamp}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 顯示 modal
+        modal.classList.add('show');
     }
 }
 

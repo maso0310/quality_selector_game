@@ -581,3 +581,188 @@ body {
         right: 100px;
     }
 }
+
+/* ===== 計分板可點擊樣式 ===== */
+.score-item.clickable {
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.score-item.clickable:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+/* ===== 判定記錄彈出視窗 ===== */
+.records-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.records-modal.show {
+    display: flex;
+}
+
+.records-modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.records-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.records-modal-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #fff;
+}
+
+.records-modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0 5px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.records-modal-close:hover {
+    opacity: 1;
+}
+
+.records-modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.no-records {
+    text-align: center;
+    color: #888;
+    padding: 40px;
+    font-size: 1.1rem;
+}
+
+.records-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.record-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.record-item.correct {
+    border-left: 4px solid #4CAF50;
+}
+
+.record-item.wrong {
+    border-left: 4px solid #f44336;
+}
+
+.record-item.missed {
+    border-left: 4px solid #ff9800;
+}
+
+.record-image {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.record-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.record-image .no-image {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.record-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.record-row {
+    display: flex;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+
+.record-label {
+    color: #888;
+    min-width: 70px;
+}
+
+.record-value {
+    color: #fff;
+}
+
+.record-value.healthy {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.record-value.diseased {
+    color: #f44336;
+    font-weight: bold;
+}
+
+/* 滾動條樣式 */
+.records-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.records-modal-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.records-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.records-modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
